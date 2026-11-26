@@ -4,6 +4,7 @@ package main
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,11 +41,16 @@ func addPhoneModel(c *gin.Context) {
 	}
 
 	// once valid, assign the newPhone into the slice
+	if newPhone.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"Message": "You cannot have an empty ID value."})
+		return
+	}
 	phoneModels = append(phoneModels, newPhone)
+
 	c.IndentedJSON(http.StatusOK, newPhone)
 }
 
-// Command: curl http://localhost:8080/phoneModels --include --header "Content-Type: applications/json" --request POST --data "{\"name\": \"Iphone 21\", \"generation\": \"9th\", \"date\": \"2020\"}"
+// Command: curl http://localhost:8080/phoneModels --include --header "Content-Type: applications/json" --request POST --data "{\"id\": \"4\", \"name\": \"Iphone 21\", \"generation\": \"9th\", \"date\": \"2020\"}"
 
 // 3. Create a handler that allows you to retrieve phonemodels by ID
 func getPhoneById(c *gin.Context) {
@@ -59,13 +65,34 @@ func getPhoneById(c *gin.Context) {
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Phone model not found"}) // returns 404 if not found
 }
 
+// command: curl http://localhost:8080/phoneModels/x (X == ID value of item)
+
+// 4. Create a handler that allows you to delete an item via id
+func removePhoneById(c *gin.Context) {
+	idParam := c.Param("id") // references the id within the json
+
+	for i, phones := range phoneModels {
+		if phones.ID == idParam {
+			phoneModels = slices.Delete(phoneModels, i, i+1)
+			c.JSON(http.StatusOK, gin.H{"Message": "Item Successfully Deleted"})
+			return
+		}
+	}
+
+	// if operation failed
+	c.JSON(http.StatusNotFound, gin.H{"Message": "Could not find entry with this ID"})
+
+}
+
 // creating a router within go
 func main() {
 	router := gin.Default()
 	router.GET("/phoneModels", getPhoneModels) // Before, you wrote the folder of Restful_Go_Api. Instead, provide the slice of phones
 	router.POST("/phoneModels", addPhoneModel)
 	router.GET("/phoneModels/:id", getPhoneById)
+	router.DELETE("/phoneModels/:id", removePhoneById)
 	router.Run("localhost:8080")
 }
 
-// TBA: Implement a delete handler function that deletes an entry by ID
+// TBA: Implement a delete handler function that deletes an entry by ID (Done - 11/25/26)
+// TBA: Implement a function that will catch if an empty string is passed as the id for a new phone entry (Done - 11/25/2026)
